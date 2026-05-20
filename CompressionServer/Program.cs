@@ -9,12 +9,11 @@ namespace CompressionServer
 {
     internal class Program
     {
-        static Socket welcomingSocket, handlingSocket;
         static void Main(string[] args)
         {
             // 1.Create the Socket and Bind
             IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Any, 5090);
-            welcomingSocket = new Socket(AddressFamily.InterNetwork, 
+            Socket welcomingSocket = new Socket(AddressFamily.InterNetwork, 
                 SocketType.Stream, ProtocolType.Tcp);
             welcomingSocket.Bind(ipEndPoint);
             welcomingSocket.Listen(10); // 2.Start Listening
@@ -23,7 +22,7 @@ namespace CompressionServer
             while (true)
             {
                 // 3.Accept Clients in a Loop
-                handlingSocket = welcomingSocket.Accept();
+                Socket handlingSocket = welcomingSocket.Accept();
                 IPEndPoint clientIpEndPoint = (IPEndPoint)handlingSocket.RemoteEndPoint;
                 Console.WriteLine("Client connected: " + clientIpEndPoint.Address.ToString());
 
@@ -38,16 +37,13 @@ namespace CompressionServer
             // Handle client communication here
             try
             {
-                IPEndPoint clientIpEndPoint = (IPEndPoint)handlingSocket.RemoteEndPoint;
-                Console.WriteLine("Handling Client: " + clientIpEndPoint.Address.ToString());
-
                 // 1. Receive file size (8 bytes for long)
-                byte[] len = ReadExactly(handlingSocket, 8);
+                byte[] len = ReadExactly(clientSocket, 8);
                 long fileSize = BitConverter.ToInt64(len, 0);
                 Console.WriteLine("Incoming file size: " + fileSize + " bytes");
 
                 // 2.Receive the file bytes
-                byte[] fileData = ReadExactly(handlingSocket, (int)fileSize);
+                byte[] fileData = ReadExactly(clientSocket, (int)fileSize);
                 Console.WriteLine("File received successfully.");
 
                 // 3.Compress the file bytes
@@ -55,11 +51,11 @@ namespace CompressionServer
                 Console.WriteLine("File compressed: " + compressedData.Length + " bytes");
 
                 // 4.Send the compressed size (8 bytes)
-                byte[] compressedSize = BitConverter.GetBytes(compressedData.Length);
-                handlingSocket.Send(compressedSize);
+                byte[] compressedSize = BitConverter.GetBytes((long)compressedData.Length);
+                clientSocket.Send(compressedSize);
 
                 // 5.Send the compressed file bytes
-                handlingSocket.Send(compressedData);
+                clientSocket.Send(compressedData);
                 Console.WriteLine("Compressed file sent to client.");
             }
             catch (Exception e)
@@ -68,7 +64,7 @@ namespace CompressionServer
             }
             finally
             {
-                handlingSocket.Close();
+                clientSocket.Close();
                 Console.WriteLine("Client disconnected.");
             }
         }
