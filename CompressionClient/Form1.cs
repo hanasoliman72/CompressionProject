@@ -18,14 +18,12 @@ namespace CompressionClient
 
         private void button1_Click(object sender, EventArgs e)
         {
-            // Close old socket if already connected
             if (clientSocket != null && clientSocket.Connected)
             {
                 clientSocket.Shutdown(SocketShutdown.Both);
                 clientSocket.Close();
             }
             
-            // 1. Connect to the Server
             try
             {
                 IPAddress host = IPAddress.Parse(IPTextBox.Text);
@@ -43,7 +41,6 @@ namespace CompressionClient
 
         private void browse_button_Click(object sender, EventArgs e)
         {
-            // 2. Browse and Load File
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 filePath = openFileDialog1.FileName;
@@ -54,7 +51,6 @@ namespace CompressionClient
 
         private async void send_button_Click(object sender, EventArgs e)
         {
-            // 3. Send File to Server
             try
             {
                 await clientSocket.SendAsync(new ArraySegment<byte>(BitConverter.GetBytes((long)fileData.Length)), 
@@ -70,21 +66,17 @@ namespace CompressionClient
 
         private async void receive_button_Click(object sender, EventArgs e)
         {
-            // Receive compressed file from the server
             try
             {
-                // 1.Receive 8 bytes => compressed file size
                 byte[] len = new byte[8];
                 await ReceiveExactlyAsync(clientSocket, len);
                 long compressedSize = BitConverter.ToInt64(len, 0);
                 logBox.Text += "Compressed file size: " + compressedSize + " bytes" + Environment.NewLine;
 
-                // 2.Receive exactly that many bytes → compressed data
                 byte[] compressedData = new byte[compressedSize];
                 await ReceiveExactlyAsync(clientSocket, compressedData);
                 logBox.Text += "File received successfully." + Environment.NewLine;
 
-                // 3.Save the file
                 SaveFileDialog saveDialog = new SaveFileDialog();
                 saveDialog.Filter = "GZip Files (*.gz)|*.gz";
                 saveDialog.FileName = Path.GetFileName(filePath) + ".gz";
@@ -100,7 +92,6 @@ namespace CompressionClient
                     logBox.Text += "Compressed size: " + compressedSize + " bytes" + Environment.NewLine;
                 }
 
-                // After saving the file successfully
                 clientSocket.Shutdown(SocketShutdown.Both);
                 clientSocket.Close();
                 logBox.Text += "Connection closed." + Environment.NewLine;
