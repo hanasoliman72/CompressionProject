@@ -11,22 +11,19 @@ namespace CompressionServer
     {
         static void Main(string[] args)
         {
-            // 1.Create the Socket and Bind
+            
             IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Any, 5090);
             Socket welcomingSocket = new Socket(AddressFamily.InterNetwork, 
                 SocketType.Stream, ProtocolType.Tcp);
             welcomingSocket.Bind(ipEndPoint);
-            welcomingSocket.Listen(10); // 2.Start Listening
+            welcomingSocket.Listen(10); 
             Console.WriteLine("Server is listening on port 5090...");
 
             while (true)
             {
-                // 3.Accept Clients in a Loop
                 Socket handlingSocket = welcomingSocket.Accept();
                 IPEndPoint clientIpEndPoint = (IPEndPoint)handlingSocket.RemoteEndPoint;
                 Console.WriteLine("Client connected: " + clientIpEndPoint.Address.ToString());
-
-                // 4.Spawn a Thread per Client
                 Thread thread = new Thread(() => HandleClient(handlingSocket));
                 thread.Start();
             }
@@ -34,27 +31,21 @@ namespace CompressionServer
 
         static void HandleClient(Socket clientSocket)
         {
-            // Handle client communication here
             try
             {
-                // 1. Receive file size (8 bytes for long)
                 byte[] len = ReadExactly(clientSocket, 8);
                 long fileSize = BitConverter.ToInt64(len, 0);
                 Console.WriteLine("Incoming file size: " + fileSize + " bytes");
 
-                // 2.Receive the file bytes
                 byte[] fileData = ReadExactly(clientSocket, (int)fileSize);
                 Console.WriteLine("File received successfully.");
 
-                // 3.Compress the file bytes
                 byte[] compressedData = Compress(fileData);
                 Console.WriteLine("File compressed: " + compressedData.Length + " bytes");
 
-                // 4.Send the compressed size (8 bytes)
                 byte[] compressedSize = BitConverter.GetBytes((long)compressedData.Length);
                 clientSocket.Send(compressedSize);
 
-                // 5.Send the compressed file bytes
                 clientSocket.Send(compressedData);
                 Console.WriteLine("Compressed file sent to client.");
             }
